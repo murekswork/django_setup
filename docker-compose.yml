@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  web:
+    image: 'django_base_pack'
+    command: python /workdir/manage.py runserver 0.0.0.0:8001
+    volumes:
+      - .:/workdir
+    depends_on:
+      - db
+    ports:
+      - 8001:8001
+
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - 'POSTGRES_HOST_AUTH_METHOD=trust'
+
+  redis:
+    image: redis:latest
+    hostname: redis
+    ports:
+      - 6379:6379
+
+  celery_worker:
+    build: .
+    hostname: worker
+    entrypoint: celery
+    command: -A celery_config.celery_app.app worker --loglevel=info
+    volumes:
+      - .:/workdir
+    links:
+      - redis
+    depends_on:
+      - redis
+volumes:
+  postgres_data:
